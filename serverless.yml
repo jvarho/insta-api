@@ -1,0 +1,55 @@
+service: insta-api
+
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: python3.8
+  region: eu-north-1
+  lambdaHashingVersion: 20201221
+  environment:
+    BUCKET: !Ref ServerlessDeploymentBucket
+    CLIENT_ID: ${file(secrets.yml):instagram.id}
+    CLIENT_SECRET: ${file(secrets.yml):instagram.secret}
+    REDIRECT_URL: ${file(secrets.yml):instagram.redirect}
+    REFRESH_ID: ${file(secrets.yml):refresh.id}
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - 's3:*'
+          Resource:
+            !Sub
+            - 'arn:aws:s3:::${Bucket}/*'
+            - { Bucket: !Ref ServerlessDeploymentBucket }
+
+plugins:
+  - serverless-python-requirements
+
+package:
+  exclude:
+    - '*'
+  include:
+    - handler.py
+
+functions:
+  authorize:
+    handler: handler.authorize
+    events:
+      - httpApi:
+          path: /authorize
+          method: get
+  load:
+    handler: handler.load
+    events:
+      - httpApi:
+          path: /load
+          method: get
+  refresh:
+    handler: handler.refresh
+    events:
+      - httpApi:
+          path: /refresh
+          method: get
+      - schedule: cron(18 18 ? * 5 *)

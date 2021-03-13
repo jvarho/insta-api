@@ -1,0 +1,161 @@
+import boto3
+import json
+import os
+import requests
+import traceback
+
+
+s3 = boto3.resource('s3')
+bucket = s3.Bucket(os.getenv('BUCKET'))
+
+client_id = os.getenv('CLIENT_ID')
+client_secret = os.getenv('CLIENT_SECRET')
+redirect_url = os.getenv('REDIRECT_URL')
+
+
+def get_ltt(token):
+    url = (
+        'https://graph.instagram.com/access_token?' +
+        'grant_type=ig_exchange_token&' +
+        'client_secret=%s&' % client_secret +
+        'access_token=%s' % token
+    )
+    r = requests.get(url)
+    j = r.json()
+    print(j)
+    return j
+
+
+def get_token(code):
+    url = 'https://api.instagram.com/oauth/access_token'
+    data = {
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'grant_type': 'authorization_code',
+        'redirect_uri': redirect_url,
+        'code': code,
+    }
+    r = requests.post(url, data)
+    j = r.json()
+    print(j)
+    ltt = get_ltt(j.get('access_token'))
+    j.update(ltt)
+    return j
+
+
+def refresh_token(token):
+    url = (
+        'https://graph.instagram.com/refresh_access_token?' +
+        'grant_type=ig_refresh_token&' +
+        'access_token=%s' % token.get('access_token')
+    )
+    r = requests.get(url)
+    j = r.json()
+    print(j)
+    if 'access_token' not in j:
+        raise j
+    token.update(j)
+    return token
+
+
+def get_data(token):
+    url = (
+        'https://graph.instagram.com/me/media?' +
+        'fields=id,caption,media_url,permalink,thumbnail_url,timestamp,username&' +
+        'access_token=' + token
+    )
+    r = requests.get(url)
+    j = r.json()
+    print(j)
+    return j
+
+
+def load_token(i):
+    bucket.download_file(i + '.json', '/tmp/tmp.json')
+    with open('/tmp/tmp.json') as f:
+        return json.load(f)
+
+
+def load_token(i):
+    print(os.getenv('BUCKET') + ':' + i + '.json')
+    bucket.download_file(i + '.json', '/tmp/tmp.json')
+    with open('/tmp/tmp.json') as f:
+        return json.load(f)
+
+
+def save_token(data):
+    bucket.put_object(Body=json.dumps(data).encode(),
+                      Key='%d.json' % data.get('user_id'))
+
+
+def authorize(event, *args, **kwargs):
+    print(event)
+    if args:
+        print(args)
+    if kwargs:
+        print(kwargs)
+    params = event.get('queryStringParameters', {})
+
+    code = params.get('code')
+    if not code:
+        return {
+            'isBase64Encoded': False,
+            'statusCode': 307,
+            'body': 'Temporary Redirect',
+            'headers': {
+                'Location': (
+                    'https://www.instagram.com/oauth/authorize?' +
+                    'client_id=%s&' % client_id +
+                    'redirect_uri=%s&' % redirect_url +
+                    'scope=user_profile,user_media&' +
+                    'response_type=code'
+                )
+            }
+        }
+
+    try:
+        token = get_token(code)
+        save_token(token)
+    except Exception:
+        traceback.print_exc()
+        return {'status': 'ERROR'}
+
+    return {'status': 'OK'}
+
+
+def load(event, *args, **kwargs):
+    print(event)
+    if args:
+        print(args)
+    if kwargs:
+        print(kwargs)
+    params = event.get('queryStringParameters', {})
+
+    try:
+        i = params.get('user_id')
+        token = load_token(i)
+        data = get_data(token.get('access_token'))
+        return {
+            'status': 'OK',
+            'data': sorted(data.get('data'), key=lambda d: d.get('timestamp'), reverse=True)
+        }
+    except Exception:
+        traceback.print_exc()
+        return {'status': 'ERROR'}
+
+
+def refresh(*args, **kwargs):
+    if args:
+        print(args)
+    if kwargs:
+        print(kwargs)
+    try:
+        token = load_token(os.getenv('REFRESH_ID'))
+        token = refresh_token(token)
+        save_token(token)
+        return {
+            'status': 'OK'
+        }
+    except Exception:
+        traceback.print_exc()
+        return {'status': 'ERROR'}
