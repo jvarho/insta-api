@@ -10,7 +10,7 @@ bucket = s3.Bucket(os.getenv('BUCKET'))
 
 client_id = os.getenv('CLIENT_ID')
 client_secret = os.getenv('CLIENT_SECRET')
-redirect_url = os.getenv('REDIRECT_URL')
+redirect_url = os.getenv('API_URL') + '/authorize'
 
 
 def get_ltt(token):

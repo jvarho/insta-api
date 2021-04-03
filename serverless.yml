@@ -11,7 +11,10 @@ provider:
     BUCKET: !Ref ServerlessDeploymentBucket
     CLIENT_ID: ${file(secrets.yml):instagram.id}
     CLIENT_SECRET: ${file(secrets.yml):instagram.secret}
-    REDIRECT_URL: ${file(secrets.yml):instagram.redirect}
+    API_URL:
+      Fn::GetAtt:
+       - HttpApi
+       - ApiEndpoint
     REFRESH_ID: ${file(secrets.yml):refresh.id}
   iam:
     role:
