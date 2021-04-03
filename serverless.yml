@@ -5,7 +5,6 @@ frameworkVersion: '2'
 provider:
   name: aws
   runtime: python3.8
-  region: eu-north-1
   memorySize: 196
   lambdaHashingVersion: 20201221
   environment:
@@ -66,4 +65,4 @@ functions:
     handler: handler.refresh
     onError: !Ref ErrorTopic
     events:
-      - schedule: cron(18 18 ? * 5 *)
+      - schedule: rate(7 days)
