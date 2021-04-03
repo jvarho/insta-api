@@ -25,9 +25,7 @@ def get_ltt(token):
         'access_token=%s' % token
     )
     r = requests.get(url)
-    j = r.json()
-    print(j)
-    return j
+    return r.json()
 
 
 def get_token(code):
@@ -41,7 +39,6 @@ def get_token(code):
     }
     r = requests.post(url, data)
     j = r.json()
-    print(j)
     ltt = get_ltt(j.get('access_token'))
     j.update(ltt)
     return j
@@ -55,9 +52,6 @@ def refresh_token(token):
     )
     r = requests.get(url)
     j = r.json()
-    print(j)
-    if 'access_token' not in j:
-        raise j
     token.update(j)
     return token
 
@@ -69,9 +63,7 @@ def get_data(token):
         'access_token=' + token
     )
     r = requests.get(url)
-    j = r.json()
-    print(j)
-    return j
+    return r.json()
 
 
 def load_tokens():
@@ -95,11 +87,6 @@ def save_token(data):
 
 
 def authorize(event, *args, **kwargs):
-    print(event)
-    if args:
-        print(args)
-    if kwargs:
-        print(kwargs)
     params = event.get('queryStringParameters', {})
 
     code = params.get('code')
@@ -130,11 +117,6 @@ def authorize(event, *args, **kwargs):
 
 
 def load(event, *args, **kwargs):
-    print(event)
-    if args:
-        print(args)
-    if kwargs:
-        print(kwargs)
     params = event.get('queryStringParameters', {})
 
     try:
@@ -151,10 +133,6 @@ def load(event, *args, **kwargs):
 
 
 def refresh(*args, **kwargs):
-    if args:
-        print(args)
-    if kwargs:
-        print(kwargs)
     try:
         for token in load_tokens().values():
             token = refresh_token(token)
