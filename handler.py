@@ -70,22 +70,24 @@ def get_data(token):
     return j
 
 
-def load_token(i):
-    bucket.download_file(i + '.json', '/tmp/tmp.json')
+def load_tokens():
+    bucket.download_file('tokens.json', '/tmp/tmp.json')
     with open('/tmp/tmp.json') as f:
         return json.load(f)
 
 
 def load_token(i):
-    print(os.getenv('BUCKET') + ':' + i + '.json')
-    bucket.download_file(i + '.json', '/tmp/tmp.json')
-    with open('/tmp/tmp.json') as f:
-        return json.load(f)
+    return load_tokens().get(i)
 
 
 def save_token(data):
-    bucket.put_object(Body=json.dumps(data).encode(),
-                      Key='%d.json' % data.get('user_id'))
+    try:
+        tokens = load_tokens()
+    except:
+        tokens = {}
+    tokens[data.get('user_id')] = data
+    bucket.put_object(Body=json.dumps(tokens).encode(),
+                      Key='tokens.json')
 
 
 def authorize(event, *args, **kwargs):
@@ -150,12 +152,11 @@ def refresh(*args, **kwargs):
     if kwargs:
         print(kwargs)
     try:
-        token = load_token(os.getenv('REFRESH_ID'))
-        token = refresh_token(token)
-        save_token(token)
+        for token in load_tokens().values():
+            token = refresh_token(token)
+            save_token(token)
         return {
             'status': 'OK'
         }
     except Exception:
-        traceback.print_exc()
-        return {'status': 'ERROR'}
+        raise
