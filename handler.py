@@ -134,9 +134,11 @@ def load(event, *args, **kwargs):
 
 def refresh(*args, **kwargs):
     try:
+        print('Refreshing tokens...')
         for token in load_tokens().values():
             token = refresh_token(token)
             save_token(token)
+        print('Refresh done.')
         return {
             'status': 'OK'
         }
