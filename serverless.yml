@@ -63,7 +63,4 @@ functions:
     handler: handler.refresh
     onError: !Ref ErrorTopic
     events:
-      - httpApi:
-          path: /refresh
-          method: get
       - schedule: cron(18 18 ? * 5 *)
