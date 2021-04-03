@@ -1,3 +1,7 @@
+#!/usr/bin/python3
+
+# Copyright (c) 2021, Jan Varho
+
 import boto3
 import json
 import os
